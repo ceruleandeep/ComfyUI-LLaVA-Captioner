@@ -249,8 +249,8 @@ class LlavaCaptioner:
 
 
 NODE_CLASS_MAPPINGS = {
-    "LLaVA Captioner //cd": LlavaCaptioner,
+    "LlavaCaptioner": LlavaCaptioner,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "LLaVA Captioner //cd": "LLaVA Captioner 🌊",
+    "LlavaCaptioner": "LLaVA Captioner 🌊",
 }
