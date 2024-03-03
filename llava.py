@@ -2,14 +2,16 @@
 import asyncio
 import base64
 import os
+from pathlib import Path
 import re
 import time
 from io import BytesIO
+from typing import Iterable, Union, cast
 
 import numpy as np
 import torch
 from PIL import Image
-from llama_cpp import Llama
+from llama_cpp import CreateChatCompletionResponse, Llama
 from llama_cpp.llama_chat_format import Llava15ChatHandler
 
 import comfy.utils
@@ -34,22 +36,29 @@ defaults = {
 }
 
 
-def get_ext_dir(subpath=None, mkdir=False):
-    dir = os.path.dirname(__file__)
-    if subpath is not None:
-        dir = os.path.join(dir, subpath)
-
-    dir = os.path.abspath(dir)
-
-    if mkdir and not os.path.exists(dir):
-        os.makedirs(dir)
-    return dir
+def add_extension_to_folder_path(
+    folder_name: str, extensions: Union[str, Iterable[str]]
+):
+    if folder_name in folder_paths.folder_names_and_paths:
+        if isinstance(extensions, str):
+            folder_paths.folder_names_and_paths[folder_name][1].add(extensions)
+        elif isinstance(extensions, Iterable):
+            for ext in extensions:
+                folder_paths.folder_names_and_paths[folder_name][1].add(ext)
 
 
 def get_installed_models(mm_proj=False):
-    if model_type not in folder_paths.folder_names_and_paths:
-        models_dir = get_ext_dir("models", mkdir=True)
-        folder_paths.add_model_folder_path(model_type, models_dir)
+    # Register models folder(s)
+    # ~ Register ./custom_nodes/ComfyUI-LLaVA-Captioner/models
+    folder_paths.add_model_folder_path(
+        model_type, str(Path(__file__).parent / "models")
+    )
+    # ~ Register ./models/llama
+    folder_paths.add_model_folder_path(
+        model_type,
+        str(Path(folder_paths.models_dir) / model_type),
+    )
+    add_extension_to_folder_path(model_type, model_fmt)
 
     models = folder_paths.get_filename_list(model_type)
     return [
@@ -74,10 +83,10 @@ async def get_llava(
     model_path = folder_paths.get_full_path(model_type, model + model_fmt)
     mmproj_path = folder_paths.get_full_path(model_type, mm_proj + model_fmt)
 
-    if not os.path.exists(model_path):
+    if not model_path or not os.path.exists(model_path):
         raise FileNotFoundError(f"Model {model_path} does not exist")
 
-    if not os.path.exists(mmproj_path):
+    if not mmproj_path or not os.path.exists(mmproj_path):
         raise FileNotFoundError(f"Model {mmproj_path} does not exist")
 
     chat_handler = Llava15ChatHandler(clip_model_path=mmproj_path)
@@ -141,8 +150,13 @@ async def get_caption(
     )
     print(f"Response in {time.monotonic() - start:.1f}s")
 
-    first_resp: dict = response["choices"][0]
+    response = cast(CreateChatCompletionResponse, response)
+
+    first_resp = response["choices"][0]
     content = first_resp["message"]["content"]  # oh leave me alone type inferencing
+
+    if not content:
+        raise ValueError(f"Empty response: {response}")
 
     # print(json.dumps(messages, indent=2))
     # print(json.dumps(response, indent=2))
