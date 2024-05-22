@@ -1,0 +1,14 @@
+[project]
+name = "comfyui-llava-captioner"
+description = "A ComfyUI extension for chatting with your images. Runs on your own system, no external services used, no filter. Uses the [a/LLaVA multimodal LLM](https://llava-vl.github.io/) so you can give instructions or ask questions in natural language. It's maybe as smart as GPT3.5, and it can see."
+version = "1.0.0"
+license = "LICENSE"
+
+[project.urls]
+Repository = "https://github.com/ceruleandeep/ComfyUI-LLaVA-Captioner"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "ComfyUI-LLaVA-Captioner"
+Icon = ""
