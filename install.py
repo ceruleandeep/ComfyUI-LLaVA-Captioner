@@ -51,7 +51,7 @@ def cmake_args(force=None):
         pass
 
     if sys.platform == "darwin":
-        return args["metal"]
+        return args["mps"]
 
     return args["default"]
 
