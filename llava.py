@@ -1,4 +1,4 @@
-# parts of this looted from https://github.com/pythongosssss/ComfyUI-WD14-Tagger
+ # parts of this looted from https://github.com/pythongosssss/ComfyUI-WD14-Tagger
 import asyncio
 import base64
 import os
@@ -31,6 +31,7 @@ defaults = {
     "max_tokens": 40,
     "prompt": "Please describe this image in 10 to 20 words.",
     "n_gpu_layers": -1,
+    "seed": 42,
 }
 
 
@@ -114,12 +115,14 @@ async def get_caption(
     prompt,
     temp,
     max_tokens=35,
+    seed=42,  # Add the seed parameter with a default value
 ):
     assert isinstance(image, Image.Image), f"{image} {type(image)=}"
     assert isinstance(system_message, str), f"{system_message} {type(system_message)=}"
     assert isinstance(prompt, str), f"{prompt} {type(prompt)=}"
     assert isinstance(temp, float), f"{temp} {type(temp)=}"
     assert isinstance(max_tokens, int), f"{max_tokens} {type(max_tokens)=}"
+    assert isinstance(seed, int), f"{seed} {type(seed)=}"  # Add this assertion
 
     file_url = encode(image)
     messages = [
@@ -138,15 +141,12 @@ async def get_caption(
         messages=messages,
         temperature=temp,
         max_tokens=max_tokens,
+        seed=seed  # Pass the seed to the LLM function
     )
     print(f"Response in {time.monotonic() - start:.1f}s")
 
     first_resp: dict = response["choices"][0]
-    content = first_resp["message"]["content"]  # oh leave me alone type inferencing
-
-    # print(json.dumps(messages, indent=2))
-    # print(json.dumps(response, indent=2))
-    # print(content)
+    content = first_resp["message"]["content"]
 
     return content.strip()
 
@@ -203,6 +203,14 @@ class LlavaCaptioner:
                         "step": 0.1,
                     },
                 ),
+                "seed": (
+                    "INT",
+                    {
+                        "default": 42,
+                        "min": 0,
+                        "max": 1000000,
+                    },
+                ),
             }
         }
 
@@ -213,13 +221,14 @@ class LlavaCaptioner:
 
     CATEGORY = "image"
 
-    def caption(self, image, model, mm_proj, prompt, max_tokens, temperature):
+    def caption(self, image, model, mm_proj, prompt, max_tokens, temperature, seed):  # Add seed here
         assert isinstance(image, torch.Tensor), f"{image} {type(image)=}"
         assert isinstance(model, str), f"{model} {type(model)=}"
         assert isinstance(mm_proj, str), f"{mm_proj} {type(mm_proj)=}"
         assert isinstance(prompt, str), f"{prompt} {type(prompt)=}"
         assert isinstance(max_tokens, int), f"{max_tokens} {type(max_tokens)=}"
         assert isinstance(temperature, float), f"{temperature} {type(temperature)=}"
+        assert isinstance(seed, int), f"{seed} {type(seed)=}"  # Add this assertion
 
         tensor = image * 255
         tensor = np.array(tensor, dtype=np.uint8)
@@ -240,6 +249,7 @@ class LlavaCaptioner:
                         prompt,
                         temperature,
                         max_tokens,
+                        seed,  # Pass seed here
                     )
                 )
             )
